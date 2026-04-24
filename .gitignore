@@ -1,0 +1,23 @@
+# ESP-IDF build directory
+build/
+# SDK configuration
+sdkconfig
+sdkconfig.old
+# Compiled objects
+*.o
+*.a
+# Libraries
+lib/
+# Flash images
+*.bin
+*.elf
+*.map
+# Python bytecode
+__pycache__
+*.py[cod]
+# IDE
+.vscode/
+.idea/
+# Misc
+.DS_Thumbs.db
+Thumbs.db
