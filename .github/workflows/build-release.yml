@@ -42,8 +42,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get the latest tag or create one based on date and commit
-          TAG="v$(date +'%Y.%m.%d')-${{ github.sha::8 }}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-8)
+          TAG="v$(date +'%Y.%m.%d')-${SHORT_SHA}"
           # Check if tag already exists
           if ! git rev -q "$TAG" >/dev/null 2>&1; then
             echo "Creating new tag: $TAG"
