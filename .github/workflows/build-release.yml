@@ -1,0 +1,73 @@
+name: Build ESP32 Firmware
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:release-v5.3
+      options: --user root
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up ESP-IDF
+        run: |
+          . /opt/esp/esp-idf/export.sh
+          idf.py set-target esp32
+
+      - name: Build firmware
+        run: |
+          idf.py build
+
+      - name: Check build artifacts
+        run: ls -la build/
+
+      - name: Upload firmware as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-firmware
+          path: build/ESP32-test.bin
+          retention-days: 30
+
+      - name: Create Release and upload bin
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the latest tag or create one based on date and commit
+          TAG="v$(date +'%Y.%m.%d')-${{ github.sha::8 }}"
+          # Check if tag already exists
+          if ! git rev -q "$TAG" >/dev/null 2>&1; then
+            echo "Creating new tag: $TAG"
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+          # Get release notes
+          RELEASE_NOTES="Automated build from commit ${{ github.sha }}\n\n[View changes](${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event_before }}...${{ github.sha }})"
+
+          # Create or update release
+          RELEASE_ID=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/releases/tags/$TAG \
+            -q '.id // empty' 2>/dev/null || true)
+
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Creating new release..."
+            gh release create "$TAG" build/ESP32-test.bin \
+              --title "Firmware $TAG" \
+              --notes "$RELEASE_NOTES"
+          else
+            echo "Updating existing release..."
+            gh release edit "$TAG" build/ESP32-test.bin \
+              --title "Firmware $TAG" \
+              --notes "$RELEASE_NOTES"
+          fi
