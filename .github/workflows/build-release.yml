@@ -10,17 +10,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: espressif/idf:release-v5.3
-      options: --user root
+    name: Build firmware and create release
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check IDF version
+      - name: Set up ESP-IDF
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: release/v5.3
+
+      - name: Set target to ESP32
         run: |
-          idf.py --version
           idf.py set-target esp32
 
       - name: Build firmware
